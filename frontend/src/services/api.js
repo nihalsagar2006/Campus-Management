@@ -96,6 +96,10 @@ if (events.length === 0) {
 
 // Seed default notifications
 let notifications = getDB('db_notifications');
+if (notifications.length > 0 && !notifications[0].hasOwnProperty('category')) {
+  localStorage.removeItem('db_notifications');
+  notifications = [];
+}
 if (notifications.length === 0) {
   notifications = [
     {
@@ -107,7 +111,11 @@ if (notifications.length === 0) {
       link_url: null,
       created_at: new Date().toISOString(),
       created_by_id: 1,
-      is_active: true
+      is_active: true,
+      category: "info",
+      display_style: "banner",
+      start_time: null,
+      end_time: null
     },
     {
       id: 2,
@@ -118,7 +126,11 @@ if (notifications.length === 0) {
       link_url: "/events/5",
       created_at: new Date().toISOString(),
       created_by_id: 1,
-      is_active: true
+      is_active: true,
+      category: "winner_announcement",
+      display_style: "card",
+      start_time: null,
+      end_time: null
     },
     {
       id: 3,
@@ -129,7 +141,11 @@ if (notifications.length === 0) {
       link_url: "/events/2",
       created_at: new Date().toISOString(),
       created_by_id: 1,
-      is_active: true
+      is_active: true,
+      category: "hackathon_countdown",
+      display_style: "card",
+      start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      end_time: null
     },
     {
       id: 4,
@@ -140,7 +156,11 @@ if (notifications.length === 0) {
       link_url: "/events/3",
       created_at: new Date().toISOString(),
       created_by_id: 1,
-      is_active: true
+      is_active: true,
+      category: "venue_change",
+      display_style: "card",
+      start_time: null,
+      end_time: null
     }
   ];
   setDB('db_notifications', notifications);
@@ -287,6 +307,18 @@ const api = {
     if (url === '/notifications/active') {
       const notices = getDB('db_notifications').filter(n => n.is_active);
       return { data: notices };
+    }
+
+    // GET /notifications/history
+    if (url === '/notifications/history') {
+      if (!currentUser) throw new Error('Unauthorized');
+      const notices = getDB('db_notifications');
+      const reads = getDB('db_notification_reads');
+      const historyList = notices.map(n => {
+        const isRead = reads.some(r => r.notification_id === n.id && r.user === currentUser.email);
+        return { ...n, is_read: isRead };
+      });
+      return { data: historyList };
     }
 
     // GET /notifications/all
@@ -627,7 +659,11 @@ const api = {
         link_url: data.link_url || null,
         created_at: new Date().toISOString(),
         created_by_id: currentUser.id,
-        is_active: true
+        is_active: true,
+        category: data.category || 'info',
+        display_style: data.display_style || 'card',
+        start_time: data.start_time || null,
+        end_time: data.end_time || null
       };
       notices.push(newNotice);
       setDB('db_notifications', notices);
